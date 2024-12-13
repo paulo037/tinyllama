@@ -53,6 +53,18 @@ configs = [
         n_embd=768,
         rotary_percentage=1.0,
         hidden_dim=512,
+    ),
+    
+    dict(
+        name="tiny_tiny_tiny_LLaMA",
+        seq_length=32,
+        vocab_size=32000,
+        n_layer=4,
+        n_head=8,
+        n_query_groups=4,
+        n_embd=384,
+        rotary_percentage=1.0,
+        hidden_dim=256,
     )
 ]
 

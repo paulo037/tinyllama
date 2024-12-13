@@ -3,3 +3,4 @@ pre-processing/data/*
 __pycache__
 .env
 mlruns
+checkpoints
