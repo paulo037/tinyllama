@@ -39,7 +39,7 @@ class GroupQueryAttention(nn.Module):
         attn_bias = torch.zeros(L, S, dtype=query.dtype)
         temp_mask = torch.ones(L, S, dtype=torch.bool).tril(diagonal=0)
         attn_bias.masked_fill_(temp_mask.logical_not(), float("-inf"))
-        attn_bias = attn_bias.to(query.dtype)
+        attn_bias = attn_bias.to(query.dtype).to(query.device)
 
         key = torch.repeat_interleave(key, self.queries_per_kv, dim=1)
         value = torch.repeat_interleave(value, self.queries_per_kv, dim=1)

@@ -57,9 +57,9 @@ six==1.17.0
 stack-data==0.6.3
 sympy==1.13.1
 tokenizers==0.21.0
-torch==2.5.1+cpu
-torchaudio==2.5.1+cpu
-torchvision==0.20.1+cpu
+torch==2.5.1
+torchaudio==2.5.1
+torchvision==0.20.1
 tornado==6.4.2
 tqdm==4.67.1
 traitlets==5.14.3
@@ -71,3 +71,5 @@ wcwidth==0.2.13
 xxhash==3.5.0
 yarl==1.18.3
 zstandard==0.23.0
+mlflow==2.19.0
+mlflow-skinny==2.19.0

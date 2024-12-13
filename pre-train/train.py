@@ -197,6 +197,9 @@ if __name__ == "__main__":
     training_config.dataset_id = args.dataset_id
     training_config.model = args.model
     
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    training_config.device = device
+    
     resume_checkpoint =  args.checkpoint
     
 
