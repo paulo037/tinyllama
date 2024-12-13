@@ -73,7 +73,7 @@ class TinyLlama(nn.Module):
     
         return self.lm_head(x) 
 
-    def generate(self, input_ids: torch.LongTensor, max_length: int = Optional[100], sample: Optional[bool] = False) -> torch.LongTensor:
+    def generate(self, input_ids: torch.LongTensor, max_length: Optional[int] = 100, sample: Optional[bool] = False) -> torch.LongTensor:
         self.eval()
         with torch.no_grad():
             for _ in range(max_length):
