@@ -57,7 +57,7 @@ configs = [
     
     dict(
         name="tiny_tiny_tiny_LLaMA",
-        seq_length=32,
+        seq_length=256,
         vocab_size=32000,
         n_layer=4,
         n_head=8,

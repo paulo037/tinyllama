@@ -39,10 +39,10 @@ class GroupQueryAttention(nn.Module):
         attn_bias = torch.zeros(L, S, dtype=query.dtype)
         temp_mask = torch.ones(L, S, dtype=torch.bool).tril(diagonal=0)
         attn_bias.masked_fill_(temp_mask.logical_not(), float("-inf"))
-        attn_bias.to(query.dtype)
+        attn_bias = attn_bias.to(query.dtype)
 
-        query = rearrange(query, "b (h g) n d -> b g h n d",
-                          g=self.queries_per_kv)
+        key = torch.repeat_interleave(key, self.queries_per_kv, dim=1)
+        value = torch.repeat_interleave(value, self.queries_per_kv, dim=1)
 
         attn_weight = query @ key.transpose(-1, -2) * scale_factor
 
@@ -50,7 +50,6 @@ class GroupQueryAttention(nn.Module):
 
         attn_weight = torch.softmax(attn_weight, dim=-1)
         y = attn_weight @ value
-        y = rearrange(y, "b g h n d -> b (h g) n d")
 
         return y
 
