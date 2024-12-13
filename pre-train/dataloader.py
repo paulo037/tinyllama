@@ -8,7 +8,7 @@ from torch.nn.utils.rnn import pad_sequence
 def prepare_data(config: TrainingConfig):
     dataset = load_dataset(config.dataset_id, split="train")  # Substitua pelo nome do dataset no HuggingFace
     dataset = dataset.select_columns("input_ids")
-    dataset = dataset.shuffle(seed=config.seed).select(range(1000))
+    #dataset = dataset.shuffle(seed=config.seed).select(range(1000))
     def tokenize_and_trim(example):
         input_ids = example["input_ids"]
         if len(input_ids) > config.context_window:
