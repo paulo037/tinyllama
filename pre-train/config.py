@@ -3,14 +3,14 @@ from dataclasses import dataclass
 
 @dataclass
 class TrainingConfig:
-    context_window: int = 256
-    batch_size: int = 8
+    context_window: int = 512
+    batch_size: int = 4
     val_batch_size: int = 8
-    gradient_accumulation_steps: int = 4
+    gradient_accumulation_steps: int = 8
     
-    learning_rate: float = 4e-4
-    min_lr: float = 4e-5
-    warmup_steps: int = 20
+    learning_rate: float = 4e-5
+    min_lr: float = 4e-6
+    warmup_steps: int = 200
     weight_decay: float = 0.1
     grad_clip: float = 1.0
     
@@ -27,3 +27,5 @@ class TrainingConfig:
     save_dir: str = "checkpoints"
     huggingface_repo_id: str = "paulo037/tinyllama"
     dataset_id: str = "paulo037/slimpajama"
+    
+    save_checkpoint : bool = True

@@ -2,8 +2,8 @@ import os
 import torch
 import random
 import numpy as np
-from transformers import get_cosine_schedule_with_warmup, AdamW
-# from torch.optim import AdamW
+from transformers import get_cosine_schedule_with_warmup
+from torch.optim import AdamW
 import mlflow
 from huggingface_hub import HfApi
 from tinyllama import TinyLlama, name_to_config
@@ -36,6 +36,8 @@ def validate(model, val_loader, step, pad_token_id):
     model.eval()
     perplexity = 0
     cross_entropy_loss = 0
+    total_loss = 0.0 
+    total_tokens = 0 
 
     with torch.no_grad():
         for batch in val_loader:
@@ -52,13 +54,17 @@ def validate(model, val_loader, step, pad_token_id):
   
             loss = torch.nn.functional.cross_entropy(logits, targets, ignore_index=pad_token_id)
 
-            perplexity += torch.exp(loss / targets.size(0)).item()
             cross_entropy_loss += loss.item()
+            total_loss += loss.item() * targets.size(0)  
+            total_tokens += targets.size(0)  
 
-    avg_perplexity = perplexity / len(val_loader)
+    average_loss = total_loss / total_tokens 
+    perplexity = torch.exp(torch.tensor(average_loss))
     avg_cross_entropy = cross_entropy_loss / len(val_loader)
-    print(f"Validation perplexity: {avg_perplexity}, cross entropy: {avg_cross_entropy}")
-    mlflow.log_metric("validation_perplexity", avg_perplexity, step=step)
+    
+    print(f"Validation perplexity: {perplexity}, cross entropy: {avg_cross_entropy}")
+    
+    mlflow.log_metric("validation_perplexity", perplexity.item(), step=step)
     mlflow.log_metric("validation_cross_entropy", avg_cross_entropy, step=step)
 
     model.train()
@@ -164,6 +170,8 @@ def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
 
             print(f"Epoch {epoch+1}, step {i + 1}, loss {loss.item()}")
             
+            mlflow.log_metric("learning_rate", scheduler.get_last_lr()[0], step=i+1)
+            
             if (i + 1) % config.gradient_accumulation_steps == 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
                 optimizer.step()
@@ -175,6 +183,9 @@ def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
                 if step % config.validation_steps == 0:
                     for s, l in losses:
                         mlflow.log_metric("train_loss", l, step=s)
+                        perplexity = torch.exp(torch.tensor(l))
+                        mlflow.log_metric("train_perplexity", perplexity.item(), step=s)
+                        
                     losses = []
                     validate(model, val_loader, step,  config.pad_token_id)
                     save_checkpoint(
@@ -190,12 +201,14 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, required=False, default=training_config.model, help="Name of the model to be used.")
     
     parser.add_argument("--checkpoint", type=str, required=False, help="Path to load the checkpoint.")
+    parser.add_argument("--save_checkpoint", type=str, required=False, default=False, help="If set to True, will save the model checkpoint.")
     parser.add_argument("--load_weights", type=str, required=False, default=None, help="Path to load the model weights.")
     
     args = parser.parse_args()
     
     training_config.dataset_id = args.dataset_id
     training_config.model = args.model
+    training_config.save_checkpoint = args.save_checkpoint
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
     training_config.device = device
