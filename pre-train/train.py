@@ -188,10 +188,11 @@ def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
                         
                     losses = []
                     validate(model, val_loader, step,  config.pad_token_id)
-                    save_checkpoint(
-                        model, optimizer, scheduler, step, epoch, 
-                        config, mlflow_run_id
-                )
+                    if config.save_checkpoint:
+                        save_checkpoint(
+                            model, optimizer, scheduler, step, epoch, 
+                            config, mlflow_run_id
+                        )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script to train or evaluate a model.")
