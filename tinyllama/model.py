@@ -3,9 +3,10 @@ import torch.nn as nn
 import torch
 from torch import Tensor
 from typing import Optional, Tuple
-from .layers import Decoder, RMSNorm, RotaryEmbedding
+from .layers import Decoder, RMSNorm, RotaryEmbedding, FeedForward, GroupQueryAttention
 from collections import OrderedDict
 from safetensors.torch import load_file
+import math
 
 class TinyLlama(nn.Module):
 
@@ -20,7 +21,21 @@ class TinyLlama(nn.Module):
         
         self.rope = RotaryEmbedding(config)
         self.rope_cache: Optional[Tuple[Tensor, Tensor]] = None
-
+    
+    def _init_weights(self, module: nn.Module, n_layer) -> None:
+        """Meant to be used with `gpt.apply(gpt._init_weights)`."""
+        # GPT-NeoX  https://arxiv.org/pdf/2204.06745.pdf
+        if isinstance(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=math.sqrt(2.0 / 5 / self.config.n_embd))
+        elif isinstance(module, nn.Linear):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=math.sqrt(2.0 / 5 / self.config.n_embd))
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        # GPT-NeoX       
+        for name, p in module.named_parameters():
+            if (name == "o_proj.weight" and isinstance(module, GroupQueryAttention)) or (name == "up_proj.weight" and isinstance(module, FeedForward) ): 
+                nn.init.normal_(p, mean=0.0, std=1 / math.sqrt(self.config.n_embd)  /  n_layer)
+        
     def get_kv_head_dim(self, config: Config) -> int:
         queries_per_kv = config.n_head // config.n_query_groups
         key_value_heads = config.n_head // queries_per_kv
