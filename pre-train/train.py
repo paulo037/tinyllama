@@ -71,6 +71,12 @@ def validate(model, val_loader, step, pad_token_id):
 
 def save_checkpoint(model, optimizer, scheduler, step, epoch, config, run_id=None):
     checkpoint_path = os.path.join(config.save_dir, f"checkpoint_step_{step}.pt")
+    mlruns_db_path = "mlruns.db"
+
+    with open(mlruns_db_path, "rb") as f:
+        mlruns_db_data = f.read()
+
+
     torch.save({
         "model_state_dict": model.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),
@@ -78,12 +84,13 @@ def save_checkpoint(model, optimizer, scheduler, step, epoch, config, run_id=Non
         "step": step,
         "epoch": epoch,
         "mlflow_run_id": run_id,
-        "config": config  
+        "config": config,
+        "mlruns_db": mlruns_db_data 
     }, checkpoint_path)
 
     api = HfApi()
     
-    # Check if the repository exists, if not, create it
+
     try:
       api.repo_info(repo_id=config.huggingface_repo_id, repo_type="model", token=HF_TOKEN)
     except Exception as e:
@@ -217,6 +224,7 @@ if __name__ == "__main__":
     
     resume_checkpoint =  args.checkpoint
     
+    mlflow.set_tracking_uri(f"sqlite:///mlruns.db")
 
     run_id = None
     checkpoint = None
