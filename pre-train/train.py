@@ -175,19 +175,18 @@ def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
             
             loss = torch.nn.functional.cross_entropy(logits, targets, ignore_index=config.pad_token_id)
             loss.backward()
-
-            print(f"Epoch {epoch+1}, step {i + 1}, loss {loss.item()}")
-            
-            mlflow.log_metric("learning_rate", scheduler.get_last_lr()[0], step=i+1)
             
             if (i + 1) % config.gradient_accumulation_steps == 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
                 optimizer.step()
                 scheduler.step()
                 optimizer.zero_grad()
+                print(f"Epoch {epoch+1}, step {step}, loss {loss.item()}")
+                mlflow.log_metric("learning_rate", scheduler.get_last_lr()[0], step=step)
 
                 losses.append((step, loss.item()))
                 step += 1
+                global_step += 1
                 if step % config.validation_steps == 0:
                     for s, l in losses:
                         mlflow.log_metric("train_loss", l, step=s)
