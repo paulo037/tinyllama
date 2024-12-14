@@ -16,7 +16,7 @@ class TrainingConfig:
     grad_clip: float = 1.0
     
     validation_split: float = 0.01
-    validation_steps: int = 312
+    validation_steps: int = 156
     max_epochs: int = 3
     seed: int = 14
     
