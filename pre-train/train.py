@@ -7,7 +7,7 @@ from transformers.optimization import get_cosine_with_min_lr_schedule_with_warmu
 import mlflow
 from huggingface_hub import HfApi
 from tinyllama import TinyLlama, name_to_config
-from .config import TrainingConfig
+from .config import TrainingConfig, configure_training_args
 from .dataloader import get_dataloaders
 from functools import partial
 import argparse
@@ -203,34 +203,26 @@ def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
                         )
 
     save_checkpoint(model, optimizer, scheduler, step, epoch, config, mlflow_run_id)
+    
+    
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script to train or evaluate a model.")
     training_config = TrainingConfig()
     
-    parser.add_argument("--dataset_id", type=str, required=False, default=training_config.dataset_id, help="ID of the dataset to be used.")
-    parser.add_argument("--model", type=str, required=False, default=training_config.model, help="Name of the model to be used.")
-    
-    parser.add_argument("--checkpoint", type=str, required=False,   help="Path to load the checkpoint.")
-    parser.add_argument("--save_checkpoint", type=str, required=False, default=True, help="If set to True, will save the model checkpoint.")
-    parser.add_argument("--load_weights", type=str, required=False, default=None, help="Path to load the model weights.")
-    
-    args = parser.parse_args()
-    
-    training_config.dataset_id = args.dataset_id
-    training_config.model = args.model
-    training_config.save_checkpoint = args.save_checkpoint
+    training_config = configure_training_args(parser, training_config)
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
     training_config.device = device
     
-    resume_checkpoint =  args.checkpoint
     
     mlflow.set_tracking_uri(f"sqlite:///mlruns.db")
 
     run_id = None
     checkpoint = None
-    if resume_checkpoint:
-        checkpoint = torch.load(resume_checkpoint)
+    if training_config.checkpoint:
+        checkpoint = torch.load(training_config.checkpoint)
         run_id = checkpoint.get('mlflow_run_id') 
     
     active_run = mlflow.start_run(run_id=run_id,run_name=f"{training_config.model}_{training_config.dataset_id.split('/')[-1]}" )
