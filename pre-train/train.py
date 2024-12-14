@@ -2,7 +2,7 @@ import os
 import torch
 import random
 import numpy as np
-from transformers import get_cosine_schedule_with_warmup, AdamW
+from transformers.optimization import get_cosine_with_min_lr_schedule_with_warmup, AdamW
 # from torch.optim import AdamW
 import mlflow
 from huggingface_hub import HfApi
@@ -126,10 +126,11 @@ def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
     total_steps = len(train_loader) * config.max_epochs // config.gradient_accumulation_steps
     start_step = 0
     start_epoch = 0
-    scheduler = get_cosine_schedule_with_warmup(
+    scheduler = get_cosine_with_min_lr_schedule_with_warmup(
         optimizer, 
         num_warmup_steps=config.warmup_steps, 
-        num_training_steps=total_steps
+        num_training_steps=total_steps,
+        min_lr=config.min_lr
     )
     
     if load_weights != None and checkpoint == None:
