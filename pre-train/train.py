@@ -72,6 +72,7 @@ def validate(model, val_loader, step, pad_token_id):
 def save_checkpoint(model, optimizer, scheduler, step, epoch, config, run_id=None):
     checkpoint_path = os.path.join(config.save_dir, f"checkpoint_step_{step}.pt")
     mlruns_db_path = "mlruns.db"
+    
 
     with open(mlruns_db_path, "rb") as f:
         mlruns_db_data = f.read()
@@ -87,6 +88,11 @@ def save_checkpoint(model, optimizer, scheduler, step, epoch, config, run_id=Non
         "config": config,
         "mlruns_db": mlruns_db_data 
     }, checkpoint_path)
+    
+
+    for file in os.listdir(config.save_dir):
+      if file.startswith("checkpoint_step_") and file != f"checkpoint_step_{step}.pt":
+        os.remove(os.path.join(config.save_dir, file))
 
     api = HfApi()
     
@@ -106,9 +112,7 @@ def save_checkpoint(model, optimizer, scheduler, step, epoch, config, run_id=Non
       repo_type="model",
       token=HF_TOKEN
     )
-
 def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
-
     set_seed(config.seed)
     os.makedirs(config.save_dir, exist_ok=True)
     
@@ -116,6 +120,10 @@ def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
     
     config_llama = name_to_config[config.model]
     model = TinyLlama(config_llama)
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+
     optimizer = AdamW(
         model.parameters(), 
         lr=config.learning_rate, 
@@ -134,32 +142,43 @@ def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
     )
     
     if load_weights != None and checkpoint == None:
-        model.load_state_dict(torch.load(load_weights))
+        model.load_state_dict(torch.load(load_weights, weights_only=False))
 
     elif checkpoint != None:
+      
+        checkpoint['model_state_dict'] = {k: v.to(device) for k, v in checkpoint['model_state_dict'].items()}
         model.load_state_dict(checkpoint['model_state_dict'])
+        
+        for state in optimizer.state.values():
+            for k, v in state.items():
+                if torch.is_tensor(v):
+                    state[k] = v.to(device)
+        
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         start_step = checkpoint['step']
         start_epoch = checkpoint['epoch']
         
-        print(f"Resuming training from checkpoint at step {start_step}, epoch {start_epoch}")
+        print(f"Resuming training from checkpoint at step {start_step}, epoch {start_epoch+1}")
         
     else:
         model.apply(partial(model._init_weights, n_layer=config_llama.n_layer))
-        
     
-  
+
+    model = model.to(device)
+
     model.train()
-    model = model.cuda() if torch.cuda.is_available() else model
 
     step = start_step
     epoch = start_epoch
     optimizer.zero_grad()
     losses = []
+    running_loss = []
     for epoch in range(start_epoch, config.max_epochs):
+        start_step = (len(train_loader) // config.gradient_accumulation_steps) * (epoch)
         for i, batch in enumerate(train_loader):
-            if i / config.gradient_accumulation_steps < start_step:
+            
+            if start_step +  i / config.gradient_accumulation_steps < step:
                 continue
             
             inputs = batch[:, :-1]
@@ -175,7 +194,7 @@ def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
             
             loss = torch.nn.functional.cross_entropy(logits, targets, ignore_index=config.pad_token_id)
             loss.backward()
-            
+            running_loss.append(loss.item())
             if (i + 1) % config.gradient_accumulation_steps == 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
                 optimizer.step()
@@ -183,10 +202,11 @@ def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
                 optimizer.zero_grad()
                 print(f"Epoch {epoch+1}, step {step}, loss {loss.item()}")
                 mlflow.log_metric("learning_rate", scheduler.get_last_lr()[0], step=step)
-
-                losses.append((step, loss.item()))
+                running_loss = sum(running_loss) / len(running_loss)
+                
+                losses.append((step, running_loss))
+                running_loss = []
                 step += 1
-                global_step += 1
                 if step % config.validation_steps == 0:
                     for s, l in losses:
                         mlflow.log_metric("train_loss", l, step=s)
