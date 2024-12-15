@@ -236,14 +236,16 @@ if __name__ == "__main__":
     training_config.device = device
     
     
-    mlflow.set_tracking_uri(f"sqlite:///mlruns.db")
 
     run_id = None
     checkpoint = None
     if training_config.checkpoint:
         checkpoint = torch.load(training_config.checkpoint)
         run_id = checkpoint.get('mlflow_run_id') 
+        with open("mlruns.db", "wb") as f:
+            f.write(checkpoint["mlruns_db"])
     
+    mlflow.set_tracking_uri(f"sqlite:///mlruns.db")
     active_run = mlflow.start_run(run_id=run_id,run_name=f"{training_config.model}_{training_config.dataset_id.split('/')[-1]}" )
     current_run_id = active_run.info.run_id
     
