@@ -221,7 +221,7 @@ def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
                             model, optimizer, scheduler, step, epoch, 
                             config, mlflow_run_id
                         )
-
+    validate(model, val_loader, step,  config.pad_token_id)
     save_checkpoint(model, optimizer, scheduler, step, epoch, config, mlflow_run_id)
     
     

@@ -122,7 +122,7 @@ def remap_state_dict(state_dict):
     
     return new_state_dict
 
-def load_model_weights(model, safetensors_path):
+def load_model_weights(model, safetensors_path, device='cpu'):
     """
     Loads and remaps weights from a safetensors file to your custom model
     
@@ -131,7 +131,14 @@ def load_model_weights(model, safetensors_path):
         safetensors_path: Path to the safetensors file
     """
     try:
-        original_state_dict = load_file(safetensors_path)
+        if safetensors_path.endswith('.safetensors'):
+            original_state_dict = load_file(safetensors_path)
+        else:
+            original_state_dict = torch.load(safetensors_path, map_location=device)
+            if "mlflow_run_id" in original_state_dict:
+                original_state_dict = original_state_dict["model_state_dict"]
+            else:
+                original_state_dict = original_state_dict 
         
         new_state_dict = remap_state_dict(original_state_dict)
         
