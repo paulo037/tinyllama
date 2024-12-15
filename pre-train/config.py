@@ -34,6 +34,7 @@ class TrainingConfig:
     
     save_checkpoint : bool = True
     checkpoint: str = None
+    load_weights: str = None
 
 
 def configure_training_args(parser, training_config):
@@ -77,3 +78,7 @@ def configure_training_args(parser, training_config):
           setattr(training_config, key, value)
   
   return training_config
+
+
+
+                            

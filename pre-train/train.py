@@ -134,6 +134,7 @@ def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
     total_steps = len(train_loader) * config.max_epochs // config.gradient_accumulation_steps
     start_step = 0
     start_epoch = 0
+    
     scheduler = get_cosine_with_min_lr_schedule_with_warmup(
         optimizer, 
         num_warmup_steps=config.warmup_steps, 
@@ -142,7 +143,7 @@ def train(config, checkpoint=None, mlflow_run_id=None, load_weights=None):
     )
     
     if load_weights != None and checkpoint == None:
-        model.load_state_dict(torch.load(load_weights, weights_only=False))
+        model.load_state_dict(load_weights)
 
     elif checkpoint != None:
       
@@ -239,11 +240,19 @@ if __name__ == "__main__":
 
     run_id = None
     checkpoint = None
+    load_weights = None
     if training_config.checkpoint:
-        checkpoint = torch.load(training_config.checkpoint)
+        checkpoint = torch.load(training_config.checkpoint, weights_only=False)
         run_id = checkpoint.get('mlflow_run_id') 
         with open("mlruns.db", "wb") as f:
             f.write(checkpoint["mlruns_db"])
+            
+    elif training_config.load_weights:
+        checkpoint = torch.load(training_config.load_weights, weights_only=False)
+        if "mlflow_run_id" in checkpoint:
+            load_weights = checkpoint["model_state_dict"]
+        else:
+            load_weights = checkpoint
     
     mlflow.set_tracking_uri(f"sqlite:///mlruns.db")
     active_run = mlflow.start_run(run_id=run_id,run_name=f"{training_config.model}_{training_config.dataset_id.split('/')[-1]}" )
@@ -253,7 +262,8 @@ if __name__ == "__main__":
         train(
             config=training_config, 
             checkpoint=checkpoint, 
-            mlflow_run_id=current_run_id
+            mlflow_run_id=current_run_id,
+            load_weights=load_weights
         )
     except KeyboardInterrupt:
         print("Training interrupted. Checkpoints saved.")
