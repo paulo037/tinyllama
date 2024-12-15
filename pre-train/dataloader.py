@@ -81,7 +81,7 @@ def prepare_data(config: TrainingConfig):
     
     warmup_dataset = load_dataset(config.warmup_dataset_id, split="train")  
     warmup_dataset = warmup_dataset.select_columns("input_ids")
-    num_warmup_samples = int(len(tokenized_dataset) * config.dataset_warm_up_ratio ) + 1
+    num_warmup_samples = int(len(tokenized_dataset) * config.dataset_warmup_ratio ) + 1
     warmup_dataset = warmup_dataset.shuffle(seed=config.seed).select(range(num_warmup_samples))
     tokenized_warmup_dataset = warmup_dataset.map(tokenize_and_trim, batched=False)
     

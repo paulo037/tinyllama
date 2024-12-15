@@ -30,7 +30,7 @@ class TrainingConfig:
     dataset_id: str = "paulo037/slimpajama"
     
     warmup_dataset_id: str = None
-    dataset_warm_up_ratio : int = 0.018
+    dataset_warmup_ratio : int = 0.018
     
     save_checkpoint : bool = True
     checkpoint: str = None
