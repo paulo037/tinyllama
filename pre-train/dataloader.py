@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader, Dataset, random_split
 from datasets import load_dataset
 from .config import TrainingConfig
 from torch.nn.utils.rnn import pad_sequence
+import numpy as np
 
 class CustomDataset(Dataset):
     def __init__(self, data):
@@ -19,6 +20,7 @@ class WarmupDatasetWrapper(Dataset):
     def __init__(self, main_dataset, warmup_dataset, config: TrainingConfig):
         self.main_dataset = main_dataset
         self.warmup_dataset = warmup_dataset
+        self.warmup_dataset_size = len(warmup_dataset)
         
         self.batch_size = config.batch_size * config.gradient_accumulation_steps
         self.max_epochs = config.max_epochs
@@ -42,7 +44,7 @@ class WarmupDatasetWrapper(Dataset):
         
         if self.global_step <= self.warmup_steps and self.batch_step  >= self.warmup_batch:
             self.step()
-            return torch.tensor(self.warmup_dataset[idx])
+            return torch.tensor(self.warmup_dataset[idx % self.warmup_dataset_size])
         else:
             self.step()
             return torch.tensor(self.main_dataset[idx])
@@ -81,7 +83,8 @@ def prepare_data(config: TrainingConfig):
     
     warmup_dataset = load_dataset(config.warmup_dataset_id, split="train")  
     warmup_dataset = warmup_dataset.select_columns("input_ids")
-    num_warmup_samples = int(len(tokenized_dataset) * config.dataset_warmup_ratio ) + 1
+    num_warmup_samples = int(len(tokenized_dataset) * config.dataset_warmup_ratio * config.max_epochs)
+    num_warmup_samples = min(num_warmup_samples, len(warmup_dataset))
     warmup_dataset = warmup_dataset.shuffle(seed=config.seed).select(range(num_warmup_samples))
     tokenized_warmup_dataset = warmup_dataset.map(tokenize_and_trim, batched=False)
     
