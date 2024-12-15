@@ -44,10 +44,10 @@ class WarmupDatasetWrapper(Dataset):
         
         if self.global_step <= self.warmup_steps and self.batch_step  >= self.warmup_batch:
             self.step()
-            return torch.tensor(self.warmup_dataset[idx % self.warmup_dataset_size])
+            return self.warmup_dataset[idx % self.warmup_dataset_size]
         else:
             self.step()
-            return torch.tensor(self.main_dataset[idx])
+            return self.main_dataset[idx]
 
     def step(self):
         if (self.batch_step +1)% self.batch_size == 0 and self.global_step < len(self.warmup_per_batch) - 1:
@@ -91,8 +91,8 @@ def prepare_data(config: TrainingConfig):
     train_size = int((1 - config.validation_split) * len(tokenized_warmup_dataset))
     val_size = len(tokenized_warmup_dataset) - train_size
 
-    warmup_train_dataset, warmup_val_dataset = random_split(tokenized_dataset, [train_size, val_size])
-
+    warmup_train_dataset, warmup_val_dataset = random_split(tokenized_warmup_dataset, [train_size, val_size])
+    warmup_train_dataset, warmup_val_dataset = CustomDataset(warmup_train_dataset), CustomDataset(warmup_val_dataset)
     train_dataset = WarmupDatasetWrapper(
         train_dataset, 
         warmup_train_dataset, 

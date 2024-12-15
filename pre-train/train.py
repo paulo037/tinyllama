@@ -242,17 +242,18 @@ if __name__ == "__main__":
     checkpoint = None
     load_weights = None
     if training_config.checkpoint:
-        checkpoint = torch.load(training_config.checkpoint, weights_only=False)
+        checkpoint = torch.load(training_config.checkpoint, weights_only=False, map_location=device)
         run_id = checkpoint.get('mlflow_run_id') 
         with open("mlruns.db", "wb") as f:
             f.write(checkpoint["mlruns_db"])
             
     elif training_config.load_weights:
-        checkpoint = torch.load(training_config.load_weights, weights_only=False)
+        checkpoint = torch.load(training_config.load_weights, weights_only=False, map_location=device)
         if "mlflow_run_id" in checkpoint:
             load_weights = checkpoint["model_state_dict"]
         else:
             load_weights = checkpoint
+        checkpoint = None
     
     mlflow.set_tracking_uri(f"sqlite:///mlruns.db")
     active_run = mlflow.start_run(run_id=run_id,run_name=f"{training_config.model}_{training_config.dataset_id.split('/')[-1]}" )
