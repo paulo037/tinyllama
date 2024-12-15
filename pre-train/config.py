@@ -29,6 +29,9 @@ class TrainingConfig:
     huggingface_repo_id: str = "paulo037/tinyllama"
     dataset_id: str = "paulo037/slimpajama"
     
+    warmup_dataset_id: str = None
+    dataset_warm_up_ratio : int = 0.018
+    
     save_checkpoint : bool = True
     checkpoint: str = None
 
@@ -63,6 +66,9 @@ def configure_training_args(parser, training_config):
   parser.add_argument("--save_checkpoint", type=bool, required=False, default=training_config.save_checkpoint, help="If set to True, will save the model checkpoint.")
   parser.add_argument("--checkpoint", type=str, required=False, help="Path to load the checkpoint.")
   parser.add_argument("--load_weights", type=str, required=False, default=None, help="Path to load the model weights.")
+  
+  parser.add_argument("--warmup_dataset_id", type=str, required=False, default=training_config.warmup_dataset_id, help="ID of the warmup dataset to be used.")
+  parser.add_argument("--dataset_warmup_ratio", type=float, required=False, default=training_config.dataset_warmup_ratio, help="Ratio of the dataset to be used for warmup.")
   
   args = parser.parse_args()
   
