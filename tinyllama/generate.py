@@ -16,20 +16,20 @@ if __name__ == "__main__":
     args = parser.parse_args()
     training_config = name_to_config[args.model]
     
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    training_config.device = device
+    
     model = TinyLlama(training_config)
     
-    if not load_model_weights(model, args.checkpoint):
+    if not load_model_weights(model, args.checkpoint, device=device):
         print("Failed to load model weights.")
         exit(1)
     
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_id)
     
     input_ids = tokenizer(args.input_text, return_tensors="pt").input_ids.to(device)
     output = model.generate(input_ids, args.max_length, args.sample)
+    
     print(tokenizer.decode(output[0], skip_special_tokens=True))
-    
-    
-
-
-                          
+  
