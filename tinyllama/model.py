@@ -77,6 +77,8 @@ class TinyLlama(nn.Module):
         self.eval()
         with torch.no_grad():
             for _ in range(max_length):
+                if input_ids.shape[1] >= self.config.seq_length:
+                    break
                 logits = self(input_ids)
                 if sample:
                     next_token = torch.multinomial(logits[:, -1].softmax(dim=-1), num_samples=1)
@@ -88,7 +90,6 @@ class TinyLlama(nn.Module):
                 if next_token.item() == self.config.stop_token_id:
                     break
         return input_ids
-
 
 
 def remap_state_dict(state_dict):
@@ -134,7 +135,7 @@ def load_model_weights(model, safetensors_path, device='cpu'):
         if safetensors_path.endswith('.safetensors'):
             original_state_dict = load_file(safetensors_path)
         else:
-            original_state_dict = torch.load(safetensors_path, map_location=device)
+            original_state_dict = torch.load(safetensors_path, map_location=device, weights_only=False)
             if "mlflow_run_id" in original_state_dict:
                 original_state_dict = original_state_dict["model_state_dict"]
             else:
@@ -144,7 +145,6 @@ def load_model_weights(model, safetensors_path, device='cpu'):
         
         missing_keys, unexpected_keys = model.load_state_dict(new_state_dict, strict=False)
         
-        print("Model loaded successfully!")
         if missing_keys:
             print("Missing keys:", missing_keys)
         if unexpected_keys:
