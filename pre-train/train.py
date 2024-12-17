@@ -3,7 +3,6 @@ import torch
 import random
 import numpy as np
 from transformers.optimization import get_cosine_with_min_lr_schedule_with_warmup, AdamW
-# from torch.optim import AdamW
 import mlflow
 from huggingface_hub import HfApi
 from tinyllama import TinyLlama, name_to_config

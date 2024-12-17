@@ -24,10 +24,11 @@ class TrainingConfig:
     eos_token_id: int = 2
     pad_token_id: int = 0
     
-    model : str = "tiny_tiny_tiny_LLaMA"
+    model : str = "tiny_LLaMA_1b"
     save_dir: str = "checkpoints"
     huggingface_repo_id: str = "paulo037/tinyllama"
     dataset_id: str = "paulo037/slimpajama"
+    max_samples: int = -1
     
     warmup_dataset_id: str = None
     dataset_warmup_ratio : int = 0.018
@@ -70,6 +71,7 @@ def configure_training_args(parser, training_config):
   
   parser.add_argument("--warmup_dataset_id", type=str, required=False, default=training_config.warmup_dataset_id, help="ID of the warmup dataset to be used.")
   parser.add_argument("--dataset_warmup_ratio", type=float, required=False, default=training_config.dataset_warmup_ratio, help="Ratio of the dataset to be used for warmup.")
+  parser.add_argument("--max_samples", type=int, required=False, default=training_config.max_samples, help="Maximum number of samples to be used.")
   
   args = parser.parse_args()
   

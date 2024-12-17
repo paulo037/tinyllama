@@ -69,6 +69,8 @@ def prepare_data(config: TrainingConfig):
     dataset = load_dataset(config.dataset_id, split="train")  
     dataset = dataset.select_columns("input_ids")
     dataset = dataset.shuffle(seed=config.seed)
+    if config.max_samples > 0:
+        dataset = dataset.select(range(config.max_samples))
     tokenized_dataset = dataset.map(tokenize_and_trim, batched=False)
 
     train_size = int((1 - config.validation_split) * len(tokenized_dataset))
