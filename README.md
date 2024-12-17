@@ -168,7 +168,7 @@ Training metrics such as loss and perplexity are logged and saved as charts:
   ![Training Perplexity](report/charts/train_perplexity.svg)
 - **Validation Cross-Entropy**:
 
-  ![Validation Cross-Entropy](report/charts/validation_cross_entropy.svg)
+  ![Validation Loss](report/charts/validation_cross_entropy.svg)
 - **Validation Perplexity**:
 
   ![Validation Perplexity](report/charts/validation_perplexity.svg)
